@@ -44,6 +44,10 @@ fn main() {
              .short("b")
              .long("branch_only")
              .help("Show branch coverage only, ignore hit counts"))
+        .arg(Arg::with_name("cmin_mode")
+            .short("Z")
+            .long("cmin_mode")
+            .help("Output the syntax expected by angora-cmin"))
         .arg(Arg::with_name("pargs")
             .help("Targeted program and arguments")
             .required(true)
@@ -54,6 +58,7 @@ fn main() {
         .get_matches();
 
     let branch_only = matches.occurrences_of("branch_only") > 0;
+    let cmin_mode = matches.occurences_of("cmin_mode") > 0;
 
     let pargs = matches.values_of_lossy("pargs").unwrap();
     let prog_bin = pargs[0].clone();
@@ -93,6 +98,10 @@ fn main() {
         } else {
             count
         };
-        writeln!(out_file, "{}:{}", idx, count).unwrap();
+        if cmin_mode {
+            writeln!(out_file, "{}{}", count, idx).unwrap();
+        } else {
+            writeln!(out_file, "{}:{}", idx, count).unwrap();
+        }
     };
 }

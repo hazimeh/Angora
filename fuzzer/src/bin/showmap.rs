@@ -58,7 +58,7 @@ fn main() {
         .get_matches();
 
     let branch_only = matches.occurrences_of("branch_only") > 0;
-    let cmin_mode = matches.occurences_of("cmin_mode") > 0;
+    let cmin_mode = matches.occurrences_of("cmin_mode") > 0;
 
     let pargs = matches.values_of_lossy("pargs").unwrap();
     let prog_bin = pargs[0].clone();

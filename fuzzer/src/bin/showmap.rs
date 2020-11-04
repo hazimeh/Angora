@@ -14,6 +14,7 @@ use std::{
     fs::File,
     io::Write,
     os::unix::io::RawFd,
+    path::PathBuf,
     sync::Arc,
 };
 
@@ -28,6 +29,12 @@ fn main() {
              .help("File to write the trace data to")
              .takes_value(true)
              .required(true))
+        .arg(Arg::with_name("at_file")
+             .short("A")
+             .long("at_file")
+             .value_name("INPUT_FILE")
+             .help("The path to the file which substitutes @@ in the command args")
+             .takes_value(true))
         .arg(Arg::with_name("time_limit")
              .short("T")
              .long("time_limit")
@@ -59,10 +66,22 @@ fn main() {
 
     let branch_only = matches.occurrences_of("branch_only") > 0;
     let cmin_mode = matches.occurrences_of("cmin_mode") > 0;
+    let at_file = matches.value_of("at_file");
+    let mut is_stdin = true;
 
     let pargs = matches.values_of_lossy("pargs").unwrap();
     let prog_bin = pargs[0].clone();
-    let prog_args = pargs[1..].to_vec();
+    let mut prog_args = pargs[1..].to_vec();
+
+    let at_pos = prog_args.iter().position(|x| x == "@@");
+    if ! at_pos.is_none() {
+        if at_file.is_none() {
+            panic!("@@ is not supported without -A/--at_file");
+        }
+        let subst_file = PathBuf::from(at_file.unwrap()).canonicalize().unwrap().into_os_string().into_string().unwrap();
+        prog_args[at_pos.unwrap()] = subst_file;
+        is_stdin = false;
+    }
 
     let global_branches = Arc::new(branches::GlobalBranches::new());
     let branches = branches::Branches::new(global_branches);
@@ -84,7 +103,7 @@ fn main() {
         &(prog_bin, prog_args),
         &envs,
         0 as RawFd,
-        false,
+        is_stdin,
         false,
         value_t!(matches, "time_limit", u64).unwrap_or(angora_common::config::TIME_LIMIT),
         value_t!(matches, "memory_limit", u64).unwrap_or(angora_common::config::MEM_LIMIT),
